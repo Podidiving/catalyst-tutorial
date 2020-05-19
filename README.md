@@ -24,3 +24,7 @@ python3 utils/prepare_splits.py \
     --labeling=./data/labeling.json \
     --out-path=./data/
 ```
+
+## Training
+
+1. `CUDA_VISIBLE_DEVICES="<YOUR_DEVICES>" catalyst-dl run --configs training/configs/train_config.yml`
