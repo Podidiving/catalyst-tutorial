@@ -1,5 +1,7 @@
 # catalyst-tutorial
+
 [catalyst](https://github.com/catalyst-team/catalyst)
+
 [more generic classification pipeline](https://github.com/catalyst-team/classification)
 
 ## Data preparation
