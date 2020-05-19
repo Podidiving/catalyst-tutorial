@@ -1,2 +1,26 @@
 # catalyst-tutorial
-Repo with minimal example of classification pipeline using catalyst library
+
+## Data preparation
+
+1. Download dataset
+```bash
+download-gdrive 1eAk36MEMjKPKL5j9VWLvNTVKk4ube9Ml artworks.tar.gz
+extract-archive artworks.tar.gz &>/dev/null
+```
+
+2. Create DataFrame:
+```bash
+catalyst-data tag2label \
+    --in-dir=./data/dataset \
+    --out-dataset=./data/dataset.csv \
+    --out-labeling=./data/labeling.json \
+    --tag-column=class
+```
+
+3. Prepare train / val splits
+```bash
+python3 utils/prepare_splits.py \
+    --df=./data/dataset.csv \
+    --labeling=./data/labeling.json \
+    --out-path=./data/
+```

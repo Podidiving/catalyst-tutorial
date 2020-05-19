@@ -1,0 +1,110 @@
+# check out https://github.com/catalyst-team/catalyst/blob/master/examples/configs
+
+model_params:
+  model: get_model_classification
+
+  model_name: resnet18
+  num_classes: 50
+  pretrained: True
+
+args:  # REQUIRED KEYWORD, различные аргументы для Catalyst
+  logdir: ./logdir  # KEYWORD путь в который будут сохранятся логи (может быть пустым, если передан baselogdir)
+  expdir: training/src  # REQUIRED KEYWORD, путь до вашего эксперимента, с файлом `__init__`, в котором импортируется Experiment, Runner, и, опционально, регистрируются все дополнительные сущности: model, callback, criterion, etc
+  seed: 42  # KEYWORD сид обучения для PyTorch, Numpy, Python и Tensorflow. По умолчанию равен 42
+  deterministic: True  # KEYWORD нужно ли использовать deterministic CuDNN (по умолчанию True)
+  benchmark: True  # KEYWORD нужно ли использовать CuDNN benchmark
+  verbose: True  # KEYWORD нужно ли выводить на консоль информацию об обучении (по умолчанию False)
+  check: False  # KEYWORD, если True, то Catalyst делает только 3 эпохи (чтобы проверить работоспособность пайплайна, по умолчанию False)
+
+runner_params:  # OPTIONAL KEYWORD, параметры для инициализации Runner
+  input_key: image
+  output_key: score
+  device: "cuda"
+
+
+stages:  # REQUIRED KEYWORD, словарь всех стадий Catalyst, для обучения и/или инфера. Содержат ключевые слова с параметрами, которые применятся ко всем стейджам, так и сами имена стейджей
+  data_params:  # KEYWORD, параметры передаваемые в `ConfigExperiment.get_datasets(...)` (для всех стейджей)
+    batch_size: 32  # KEYWORD, размер батча для всех стейджей
+    num_workers: 32  # KEYWORD, количество параллельных процессов для DataLoader
+    drop_last: False  # KEYWORD, параметр для DataLoader (по умолчанию False)
+    per_gpu_scaling: False  # KEYWORD, если True и режим работы не distributed, то увеличивает батчсайз и количество воркеров пропорционально количиству видеокарт
+    loaders_params:  # KEYWORD, параметры для лоадеров, опционально
+      # Например
+      train:
+        num_workers: 32  # Переопределит значение для этого конкретного лоадера (train)
+        drop_last: True
+      valid:  # Переопределит значение для valid лоадера
+        batch_size: 32
+    datapath: ./data/artworks
+    in_csv_train: ./data/train.csv
+    in_csv_valid: ./data/valid.csv
+    one_hot_classes: 50
+
+
+  state_params:
+    main_metric: auc_class/_mean
+    minimize_metric: False
+
+  criterion_params:
+    _key_value: True
+    class_criterion:
+      criterion: CrossEntropyLoss
+
+  callbacks_params:
+    accuracy_class:
+      callback: AccuracyCallback
+      input_key: targets
+      output_key: score
+      prefix: accuracy_class
+      num_classes: 50
+    auc_class:
+      callback: AUCCallback
+      input_key: targets_one_hot
+      output_key: score
+      prefix: auc_class
+      num_classes: 50
+
+    class_loss:
+      callback: CriterionCallback
+      input_key: targets
+      output_key: score
+      criterion_key: class_criterion
+      prefix: loss_class
+
+    optimizer:
+      callback: OptimizerCallback
+      loss_key: loss_class
+    saver:
+      callback: CheckpointCallback
+      save_n_best: 1
+
+  # train head
+  stage1:
+    state_params:
+      num_epochs: 8
+
+    optimizer_params:
+      optimizer: Adam
+      lr: 0.001
+      weight_decay: 0.0001
+    scheduler_params:  # REQUIRED KEYWORD, параметры для lr-scheduler
+      _key_value: False  # KEYWORD, если True, то lr-scheduler может быть несколько и тогда их нужно обернуть еще в key-value
+      scheduler: StepLR  # REQUIRED KEYWORD, имя lr-scheduler
+      # на этом уровне могут лежать параметры для __init__ данного lr-scheduler, например
+      step_size: 5
+      gamma: 0.3
+
+  stage2:
+    state_params:
+      num_epochs: 24
+
+    optimizer_params:
+      optimizer: Adam
+      lr: 0.0003
+
+    scheduler_params:  # REQUIRED KEYWORD, параметры для lr-scheduler
+      _key_value: False  # KEYWORD, если True, то lr-scheduler может быть несколько и тогда их нужно обернуть еще в key-value
+      scheduler: StepLR  # REQUIRED KEYWORD, имя lr-scheduler
+      # на этом уровне могут лежать параметры для __init__ данного lr-scheduler, например
+      step_size: 10
+      gamma: 0.3
