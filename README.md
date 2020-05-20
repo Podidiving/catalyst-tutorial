@@ -1,10 +1,13 @@
 # catalyst-tutorial
 
+
 [catalyst](https://github.com/catalyst-team/catalyst)
 
 [more generic classification pipeline](https://github.com/catalyst-team/classification)
 
+
 ## Data preparation
+
 
 1. Download dataset
 ```bash
@@ -29,6 +32,20 @@ python3 utils/prepare_splits.py \
     --out-path=./data/
 ```
 
+
 ## Training
 
+
 1. `CUDA_VISIBLE_DEVICES="<YOUR_DEVICES>" catalyst-dl run --configs training/configs/train_config.yml`
+
+
+## While training
+
+
+1. Tensorboard training logs are available at `<logdir>/train_log`
+1. Tensorboard validation logs are available at `<logdir>/valid_log`
+
+
+## After training
+
+1. Weights for final model (which is the best, according to <main metric> on validation) are available at `<logdir>/checkpoints/best.pth`
