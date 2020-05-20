@@ -1,8 +1,8 @@
 # check out https://github.com/catalyst-team/catalyst/blob/master/examples/configs
 
-model_params:
-  model: get_model_classification
-
+model_params:  # REQUIRED KEYWORD, параметры для описания модели
+  model: get_model_classification  # REQUIRED KEYWORD, название функции (класса), возвращающая объект nn.Module
+  #  Параметры модели
   model_name: resnet18
   num_classes: 50
   pretrained: True
@@ -17,8 +17,8 @@ args:  # REQUIRED KEYWORD, различные аргументы для Catalyst
   check: False  # KEYWORD, если True, то Catalyst делает только 3 эпохи (чтобы проверить работоспособность пайплайна, по умолчанию False)
 
 runner_params:  # OPTIONAL KEYWORD, параметры для инициализации Runner
-  input_key: image
-  output_key: score
+  input_key: image  # Что модель принимает на вход
+  output_key: score  # Куда модель записывает результат
   device: "cuda"
 
 
@@ -35,22 +35,25 @@ stages:  # REQUIRED KEYWORD, словарь всех стадий Catalyst, дл
         drop_last: True
       valid:  # Переопределит значение для valid лоадера
         batch_size: 32
+    # Параметры, которые передаются в функцию get_datasets
     datapath: ./data/artworks
     in_csv_train: ./data/train.csv
     in_csv_valid: ./data/valid.csv
     one_hot_classes: 50
 
 
-  state_params:
-    main_metric: auc_class/_mean
-    minimize_metric: False
+  state_params:  # REQUIRED KEYWORD, параметры для State (для всех стейджей)
+    main_metric: auc_class/_mean   # REQUIRED KEYWORD, имя метрики, по которой будут отбираться чекпоинты
+    minimize_metric: False  # REQUIRED KEYWORD, флаг, нужно ли минимизировать `main_metric`
+    num_epochs: 10  # KEYWORD, Количество эпох во всех стейджах
+    valid_loader: valid  # KEYWORD, по какому лоадеру будут выбираться чекпоинты
 
-  criterion_params:
-    _key_value: True
+  criterion_params:  # REQUIRED KEYWORD, параметры для лосс-функции
+    _key_value: True  # KEYWORD, если True, то лосс-функций может быть несколько и тогда их нужно обернуть еще в key-value
     class_criterion:
       criterion: CrossEntropyLoss
 
-  callbacks_params:
+  callbacks_params:  # REQUIRED KEYWORD, самая важная часть, тут записываются все коллбеки для данного стейджа (если вне стейджа, то для всех)
     accuracy_class:
       callback: AccuracyCallback
       input_key: targets
@@ -79,22 +82,22 @@ stages:  # REQUIRED KEYWORD, словарь всех стадий Catalyst, дл
       save_n_best: 1
 
   # train head
-  stage1:
+  finetune:  # Все, что не ключевое слово, расценивается, как имя стейджа. Для тренировки в Catalyst требуется хотябы один стейдж. Имя может быть произвольным
     state_params:
       num_epochs: 8
 
-    optimizer_params:
+    # Если не указан внешний optimizer & scheduler, то в каждом стейдже они должны быть определены
+    optimizer_params:  # REQUIRED KEYWORD, параметры для оптимизатора
       optimizer: Adam
       lr: 0.001
       weight_decay: 0.0001
     scheduler_params:  # REQUIRED KEYWORD, параметры для lr-scheduler
       _key_value: False  # KEYWORD, если True, то lr-scheduler может быть несколько и тогда их нужно обернуть еще в key-value
       scheduler: StepLR  # REQUIRED KEYWORD, имя lr-scheduler
-      # на этом уровне могут лежать параметры для __init__ данного lr-scheduler, например
       step_size: 5
       gamma: 0.3
 
-  stage2:
+  fulltrain:  # Вы можете переопределить любые параметры, для конкретного стейджа, например
     state_params:
       num_epochs: 24
 
@@ -102,9 +105,8 @@ stages:  # REQUIRED KEYWORD, словарь всех стадий Catalyst, дл
       optimizer: Adam
       lr: 0.0003
 
-    scheduler_params:  # REQUIRED KEYWORD, параметры для lr-scheduler
-      _key_value: False  # KEYWORD, если True, то lr-scheduler может быть несколько и тогда их нужно обернуть еще в key-value
-      scheduler: StepLR  # REQUIRED KEYWORD, имя lr-scheduler
-      # на этом уровне могут лежать параметры для __init__ данного lr-scheduler, например
+    scheduler_params:
+      _key_value: False
+      scheduler: StepLR
       step_size: 10
       gamma: 0.3
