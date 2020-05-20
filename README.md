@@ -48,4 +48,4 @@ python3 utils/prepare_splits.py \
 
 ## After training
 
-1. Weights for final model (which is the best, according to <main metric> on validation) are available at `<logdir>/checkpoints/best.pth`
+1. Weights for final model (which is the best, according to `<main metric>` on validation) are available at `<logdir>/checkpoints/best.pth`
